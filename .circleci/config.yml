@@ -67,6 +67,24 @@ job: &JOB
       path: /tmp/core_dumps
   - *SAVE_DEPS
 
+macos_job: &MACOS_JOB
+  macos:
+    xcode: "9.0"
+  environment:
+    RUSTUP_HOME: /usr/local/rustup
+    CARGO_HOME: /usr/local/cargo
+  steps:
+    - checkout
+    - run: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain 1.19.0
+    - *RESTORE_REGISTRY
+    - run: cargo generate-lockfile
+    - *SAVE_REGISTRY
+    - run: brew install openssl
+    - *RESTORE_DEPS
+    - run: cargo run --manifest-path=systest/Cargo.toml
+    - run: cargo test --manifest-path=openssl/Cargo.toml --all-features
+    - *SAVE_DEPS
+
 openssl_110: &OPENSSL_110
   LIBRARY: openssl
   VERSION: 1.1.0g
@@ -144,6 +162,8 @@ jobs:
     <<: *JOB
     environment:
       <<: [*LIBRESSL_263, *X86_64, *BASE]
+  macos:
+    <<: *MACOS_JOB
 workflows:
   version: 2
   tests:
@@ -159,3 +179,4 @@ workflows:
     - armhf-openssl-1.0.1
     - x86_64-libressl-2.5.0
     - x86_64-libressl-2.6.3
+    - macos
